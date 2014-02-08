@@ -16,7 +16,7 @@ KENCHOBL_REMOTE_URL=http://www.gsi.go.jp/KOKUJYOHO/kencho/kenchobl.html
 KENCHOBL_HTML=$OUT_DIR/kenchobl.html
 KENCHOBL_CSV=${KENCHOBL_HTML%.html}.csv
 
-RESULT_FILE=$OUT_DIR/results_$(printf "%03d" $k)_$(printf "%03d" $TRIALS).csv
+RESULT_FILE=$OUT_DIR/results_$(printf "%03d" $KLIMIT)_$(printf "%03d" $TRIALS).csv
 
 function cluster_file {
     local k=$1
