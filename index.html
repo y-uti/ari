@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+
+  <head>
+
+    <title>Rand Index のデモ</title>
+
+    <link rel="stylesheet" type="text/css" href="css/style.css"/>
+
+    <script src="js/d3.v3.min.js"></script>
+    <script src="js/topojson.v1.min.js"></script>
+
+    <script src="js/ari.js"></script>
+    <script src="js/kmeans.js"></script>
+    <script src="js/japan.js"></script>
+
+  </head>
+
+  <body>
+
+    <div class="canvas"></div>
+
+    <div class="left">
+
+      <div class="svg-placeholder"></div>
+
+    K1
+    <select id="left-k" name="k1">
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+    </select>
+    <input id="left-cluster" type="button" value="再計算"/>
+    </div>
+
+    <div class="right">
+
+      <div class="svg-placeholder"></div>
+
+    K2
+    <select id="right-k" name="k2">
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+    </select>
+    <input id="right-cluster" type="button" value="再計算"/>
+    </div>
+
+    <div id="ri">
+    </div>
+
+  </body>
+
+</html>
