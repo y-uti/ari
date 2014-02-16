@@ -1,7 +1,3 @@
-//
-// kmeans.js
-//
-
 function kmeans(data, k) {
 
     function initializeCentroids(data, k) {
@@ -18,34 +14,30 @@ function kmeans(data, k) {
     }
 
     function updateCentroids(data, clusters) {
-	var centroids = [];
-	var count = [];
-	for (var i = 0; i < data.length; i++) {
-	    var c = clusters[i];
-	    if (!centroids[c]) {
-		centroids[c] = [0, 0];
-		count[c] = 0;
-	    }
-	    centroids[c] = vectorAdd(centroids[c], data[i]);
-	    count[c]++;
-	}
-	return centroids.map(function (c, i) { return vectorDivScalar(c, count[i]); });
+	var centroids = new Array(d3.max(clusters) + 1);
+	var hash = d3.zip(data, clusters).map(function (v) { return { cluster: v[1], data: v[0] }; });
+	var dataByCluster = d3.nest()
+		.key(function (h) { return h.cluster; })
+		.entries(hash);
+	dataByCluster.forEach(function (h) {
+	    var data = h.values.map(function (v) { return v.data; });
+	    centroids[h.key] = vectorDivScalar(vectorSum(data), data.length);
+	});
+
+	return centroids;
     }
 
     function vectorDistance(a, b) {
-	var acc = 0;
-	for (var i = 0; i < a.length; i++) {
-	    acc += Math.pow(a[i] - b[i], 2);
-	}
-	return Math.sqrt(acc);
+	return Math.sqrt(
+	    d3.zip(a, b).reduce(function (acc, v) { return acc + Math.pow(v[0] - v[1], 2); }, 0));
+    }
+
+    function vectorSum(v) {
+	return v.reduce(vectorAdd, v[0].map(function () { return 0; }));
     }
 
     function vectorAdd(a, b) {
-	var result = [];
-	for (var i = 0; i < a.length; i++) {
-	    result[i] = a[i] + b[i];
-	}
-	return result;
+	return d3.zip(a, b).map(function (v) { return v[0] + v[1]; });
     }
 
     function vectorDivScalar(v, n) {
