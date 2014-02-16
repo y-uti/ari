@@ -32,10 +32,10 @@ function buildMatrix(r, c) {
 }
 
 function countValues(c) {
-    var result = d3.range(d3.max(c) + 1).map(function () { return 0; });
-    c.forEach(function (i) { result[i]++; });
-
-    return result;
+    return d3.nest()
+        .key(function (e) { return e; }).sortKeys(d3.ascending)
+        .entries(c)
+        .map(function (e) { return e.values.length; });
 }
 
 function combination2(n) {
