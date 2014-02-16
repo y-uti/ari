@@ -1,60 +1,60 @@
 function kmeans(data, k) {
 
     function initializeCentroids(data, k) {
-	var index = data.map(function (v, i) { return i; });
-	return d3.shuffle(index).slice(0, k).map(function (i) { return data[i]; });
+        return d3.permute(data, d3.shuffle(d3.range(data.length))).slice(0, k);
     }
 
     function assignClusters(data, centroids) {
-	return data.map(function (d) { return nearestCentroidIndex(d, centroids); });
+        return data.map(function (d) { return nearestCentroidIndex(d, centroids); });
     }
 
     function nearestCentroidIndex(coord, centroids) {
-	return argmin(centroids.map(function (c) { return vectorDistance(c, coord); }));
+        return argmin(centroids.map(function (c) { return vectorDistance(c, coord); }));
     }
 
     function updateCentroids(data, clusters) {
-	var centroids = new Array(d3.max(clusters) + 1);
-	var hash = d3.zip(data, clusters).map(function (v) { return { cluster: v[1], data: v[0] }; });
-	var dataByCluster = d3.nest()
-		.key(function (h) { return h.cluster; })
-		.entries(hash);
-	dataByCluster.forEach(function (h) {
-	    var data = h.values.map(function (v) { return v.data; });
-	    centroids[h.key] = vectorDivScalar(vectorSum(data), data.length);
-	});
-
-	return centroids;
+        var h = d3.zip(data, clusters).map(function (v) { return { cluster: v[1], data: v[0] }; });
+        return d3.nest()
+            .key(function (e) { return e.cluster; }).sortKeys(d3.ascending)
+            .entries(h)
+            .map(function (e) { return e.values.map(function (v) { return v.data; }); })
+            .map(function (e) { return vectorMean(e); });
     }
 
     function vectorDistance(a, b) {
-	return Math.sqrt(
-	    d3.zip(a, b).reduce(function (acc, v) { return acc + Math.pow(v[0] - v[1], 2); }, 0));
+        return Math.sqrt(d3.sum(d3.zip(a, b), function (v) { return Math.pow(v[0] - v[1], 2); }));
+    }
+
+    function vectorMean(v) {
+        return vectorDivScalar(vectorSum(v), v.length);
     }
 
     function vectorSum(v) {
-	return v.reduce(vectorAdd, v[0].map(function () { return 0; }));
+        return v.reduce(vectorAdd, v[0].map(function () { return 0; }));
     }
 
     function vectorAdd(a, b) {
-	return d3.zip(a, b).map(function (v) { return v[0] + v[1]; });
+        return d3.zip(a, b).map(function (v) { return v[0] + v[1]; });
     }
 
     function vectorDivScalar(v, n) {
-	return v.map(function (vi) { return vi / n; });
+        return v.map(function (vi) { return vi / n; });
     }
 
     function argmin(array) {
-	return array.indexOf(Math.min.apply(null, array));
+        return array.indexOf(Math.min.apply(null, array));
     }
 
-    var clusters = data.map(function (v) { return Math.floor(Math.random() * k); });
-    var centroids = initializeCentroids(data, k);
+    function areEqual(c1, c2) {
+        return c1.length == c2.length && d3.zip(c1, c2).every(function (v) { return v[0] == v[1]; });
+    }
 
-    var next = null;
-    while ((next = assignClusters(data, centroids)).toString() != clusters.toString()) {
-	clusters = next;
-	centroids = updateCentroids(data, clusters);
+    var centroids = initializeCentroids(data, k);
+    var clusters = [];
+    var next = [];
+    while (! areEqual(next = assignClusters(data, centroids), clusters)) {
+        clusters = next;
+        centroids = updateCentroids(data, clusters);
     }
 
     return clusters;

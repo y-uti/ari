@@ -1,21 +1,21 @@
 function calcRandIndex(c1, c2) {
     return calculate(c1, c2, function (n, oo, c1o, c2o) {
-	return (n + 2 * oo - c1o - c2o) / n;
+        return (n + 2 * oo - c1o - c2o) / n;
     });
 }
 
 function calcAdjustedRandIndex(c1, c2) {
     return calculate(c1, c2, function (n, oo, c1o, c2o) {
-	return (oo * n - c1o * c2o) / ((c1o + c2o) * n / 2 - c1o * c2o);
+        return (oo * n - c1o * c2o) / ((c1o + c2o) * n / 2 - c1o * c2o);
     });
 }
 
 function calculate(c1, c2, f) {
     var table = buildContingencyTable(c1, c2);
     var n = combination2(c1.length);
-    var oo = d3.sum(d3.merge(table).map(combination2));
-    var c1o = d3.sum(countValues(c1).map(combination2));
-    var c2o = d3.sum(countValues(c2).map(combination2));
+    var oo = d3.sum(d3.merge(table), combination2);
+    var c1o = d3.sum(countValues(c1), combination2);
+    var c2o = d3.sum(countValues(c2), combination2);
 
     return f(n, oo, c1o, c2o);
 }
