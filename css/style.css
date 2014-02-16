@@ -3,14 +3,14 @@ div.left {
     float: left;
 }
 
-div.svg-placeholder {
-    margin: 4px;
-    border: 1px solid black;
-}
-
 div.right {
     width: 50%;
     float: left;
+}
+
+div.svg-placeholder {
+    margin: 4px;
+    border: 1px solid black;
 }
 
 div#ri {

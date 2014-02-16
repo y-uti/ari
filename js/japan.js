@@ -3,14 +3,107 @@ window.addEventListener('load', function () {
     var width = 600;
     var height = 600;
 
-    var svg1 = d3.select(".left").select(".svg-placeholder").append("svg")
+    function createSvg(root) {
+	return root.select(".svg-placeholder").append("svg")
 	    .attr("width", width)
 	    .attr("height", height);
-    var svg2 = d3.select(".right").select(".svg-placeholder").append("svg")
-	    .attr("width", width)
-	    .attr("height", height);
+    }
+    var svg1 = createSvg(d3.select(".left"));
+    var svg2 = createSvg(d3.select(".right"));
+
+    function lightColor(i, k) {
+	return d3.hsl(360 * i / k, 1, 0.75);
+    }
+
+    function darkColor(i, k) {
+	return d3.hsl(360 * i / k, 0.125, 0.5);
+    }
+
+    function ModelObject(data, k) {
+	this.data = data;
+	this.k = k;
+	this.clusters = kmeans(this.data, this.k);
+    }
+
+    ModelObject.prototype.clustering = function (k) {
+	this.k = k;
+	this.clusters = kmeans(this.data, this.k);
+    };
+
+    function ClusterController(view, model, randIndexController) {
+	this.view = view;
+	this.model = model;
+	this.randIndexController = randIndexController;
+    }
+
+    ClusterController.prototype.clustering = function () {
+	this.model.clustering(this.getK());
+	this.resetView();
+	this.randIndexController.update();
+    };
+
+    ClusterController.prototype.getK = function () {
+	return this.view.select(".k-selector").node().value;
+    };
+
+    ClusterController.prototype.hilight = function (i) {
+	this.view.select(".pref_" + i).attr("fill", lightColor(this.model.clusters[i], this.getK()));
+    };
+
+    ClusterController.prototype.resetView = function () {
+	for (var i = 0; i < this.model.clusters.length; i++) {
+	    this.view.select(".pref_" + i).attr("fill", darkColor(this.model.clusters[i], this.getK()));
+	}
+    };
+
+    function RandIndexController(view, model1, model2) {
+	this.view = view;
+	this.model1 = model1;
+	this.model2 = model2;
+    }
+
+    RandIndexController.prototype.update = function () {
+	var randIndex = calcRandIndex(this.model1.clusters, this.model2.clusters);
+	var adjustedRandIndex = calcAdjustedRandIndex(this.model1.clusters, this.model2.clusters);
+	this.view.text("RI = " + randIndex + ", ARI = " + adjustedRandIndex);
+    };
 
     d3.json("japan.json", function (error, o) {
+
+	var features = topojson.feature(o, o.objects.japan).features;
+	var location = features.map(function (v) { var p = v.properties; return [p.lng, p.lat]; });
+
+	var l = new ModelObject(location, 2);
+	var r = new ModelObject(location, 2);
+
+	var randIndexController = new RandIndexController(d3.select(".rand-index-placeholder"), l, r);
+
+	var lClusterController = new ClusterController(d3.select(".left"), l, randIndexController);
+	var rClusterController = new ClusterController(d3.select(".right"), r, randIndexController);
+
+	function clustering(c) {
+	    c.clustering();
+	}
+	lClusterController.view.select(".clustering").on("click", function () { clustering(lClusterController); });
+	rClusterController.view.select(".clustering").on("click", function () { clustering(rClusterController); });
+
+	function getDisagree(c) {
+	    return d3.range(l.clusters.length).filter(function (i) {
+		return (l.clusters[c] == l.clusters[i]) != (r.clusters[c] == r.clusters[i]);
+	    });
+	}
+
+	function focus(_, i) {
+	    getDisagree(i).concat(i).forEach(function (j) {
+		lClusterController.hilight(j);
+		rClusterController.hilight(j);
+	    });
+	}
+
+	function resetView() {
+	    lClusterController.resetView();
+	    rClusterController.resetView();
+	}
 
 	function createPath() {
 	    var projection = d3.geo.mercator()
@@ -19,112 +112,25 @@ window.addEventListener('load', function () {
 		    .translate([300, 300]);
 	    return d3.geo.path().projection(projection);
 	}
-
 	var path = createPath();
 
-	var features = topojson.feature(o, o.objects.japan).features;
-
-	var location = features.map(function (v) { var p = v.properties; return [p.lng, p.lat]; });
-	var clusters1 = kmeans(location, K1());
-	var clusters2 = kmeans(location, K2());
-	var ri = calcRandIndex(clusters1, clusters2);
-	var ari = calcAdjustedRandIndex(clusters1, clusters2);
-	document.getElementById("ri").innerHTML = "RI = " + ri + ", ARI = " + ari;
-
-	function clusterLeft() {
-	    clusters1 = kmeans(location, K1());
-	    darker(0, 0);
-	    var ri = calcRandIndex(clusters1, clusters2);
-	    var ari = calcAdjustedRandIndex(clusters1, clusters2);
-	    document.getElementById("ri").innerHTML = "RI = " + ri + ", ARI = " + ari;
+	function buildSvg(svg, c, n) {
+	    svg.selectAll(".japan")
+		.data(features)
+		.enter()
+		.append("path")
+		.attr("class", function (d, i) { return "pref_" + i; })
+		.attr("stroke", "black")
+		.attr("stroke-width", "0.5")
+		.on("mouseover", focus)
+		.on("mouseout", resetView)
+		.attr("d", path);
 	}
+	buildSvg(svg1, lClusterController, 1);
+	buildSvg(svg2, rClusterController, 2);
 
-	d3.select("#left-cluster").on("click", clusterLeft);
-
-	function clusterRight() {
-	    var k = d3.select("#right-k").node().value;
-	    clusters2 = kmeans(location, K2());
-	    darker(0, 0);
-	    var ri = calcRandIndex(clusters1, clusters2);
-	    var ari = calcAdjustedRandIndex(clusters1, clusters2);
-	    document.getElementById("ri").innerHTML = "RI = " + ri + ", ARI = " + ari;
-	}
-
-	d3.select("#right-cluster").on("click", clusterRight);
-
-	function getDisagree(c) {
-	    var result = [];
-	    for (var i = 0; i < clusters1.length; ++i) {
-		var c1 = clusters1[c];
-		var i1 = clusters1[i];
-		var c2 = clusters2[c];
-		var i2 = clusters2[i];
-		if ((i1 == c1) != (i2 == c2)) {
-		    result.push(i);
-		}
-	    }
-	    return result;
-	}
-
-	function K1() {
-	    return d3.select("#left-k").node().value;
-	}
-
-	function K2() {
-	    return d3.select("#right-k").node().value;
-	}
-
-	function lightColor(i, k) {
-	    return d3.hsl(360 * i / k, 1, 0.75);
-	}
-
-	function darkColor(i, k) {
-	    return d3.hsl(360 * i / k, 0.125, 0.5);
-	}
-
-	function brighter(d, i) {
-	    brighter2(i);
-	    disagree = getDisagree(i);
-	    for (var j = 0; j < disagree.length; ++j) {
-		brighter2(disagree[j]);
-	    }
-	}
-
-	function brighter2(i) {
-	    d3.select(".pref1_" + i).attr("fill", lightColor(clusters1[i], K1()));
-	    d3.select(".pref2_" + i).attr("fill", lightColor(clusters2[i], K2()));
-	}
-
-	function darker(d, i) {
-	    for (var j = 0; j < clusters1.length; ++j) {
-		d3.select(".pref1_" + j).attr("fill", darkColor(clusters1[j], K1()));
-		d3.select(".pref2_" + j).attr("fill", darkColor(clusters2[j], K2()));
-	    }
-	}
-
-	svg1.selectAll(".japan")
-	    .data(features)
-	    .enter()
-	    .append("path")
-	    .attr("class", function(d, i) { return "pref1_" + i; })
-	    .attr("stroke", "black")
-	    .attr("stroke-width", "0.5")
-	    .attr("fill", function(d, i) { return darkColor(clusters1[i], K1()); })
-	    .on("mouseover", brighter)
-	    .on("mouseout", darker)
-	    .attr("d", path);
-
-	svg2.selectAll(".japan")
-	    .data(features)
-	    .enter()
-	    .append("path")
-	    .attr("class", function(d, i) { return "pref2_" + i; })
-	    .attr("stroke", "black")
-	    .attr("stroke-width", "0.5")
-	    .attr("fill", function(d, i) { return darkColor(clusters2[i], K2()); })
-	    .on("mouseover", brighter)
-	    .on("mouseout", darker)
-	    .attr("d", path);
+	resetView();
+	randIndexController.update();
 
     });
 
