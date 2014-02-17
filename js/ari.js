@@ -21,17 +21,17 @@ function calculate(c1, c2, f) {
 
 function countValues(c) {
     return d3.nest()
-	.key(function (e) { return e; }).sortKeys(d3.ascending)
-	.rollup(function (v) { return v.length; })
-	.map(c, d3.map);
+        .key(function (e) { return e; }).sortKeys(d3.ascending)
+        .rollup(function (v) { return v.length; })
+        .map(c, d3.map);
 }
 
 function countValues2d(c1, c2) {
     return d3.nest()
-	.key(function (e) { return e[0]; }).sortKeys(d3.ascending)
-	.key(function (e) { return e[1]; }).sortKeys(d3.ascending)
-	.rollup(function (v) { return v.length; })
-	.map(d3.zip(c1, c2), d3.map);
+        .key(function (e) { return e[0]; }).sortKeys(d3.ascending)
+        .key(function (e) { return e[1]; }).sortKeys(d3.ascending)
+        .rollup(function (v) { return v.length; })
+        .map(d3.zip(c1, c2), d3.map);
 }
 
 function combination2(n) {
