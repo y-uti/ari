@@ -11,33 +11,33 @@ function calcAdjustedRandIndex(c1, c2) {
 }
 
 function calculate(c1, c2, f) {
-    var table = buildContingencyTable(c1, c2);
     var n = combination2(c1.length);
-    var oo = d3.sum(d3.merge(table), combination2);
-    var c1o = d3.sum(countValues(c1), combination2);
-    var c2o = d3.sum(countValues(c2), combination2);
+    var oo = d3.sum(countValues2d(c1, c2).values().map(sumOfCombination2));
+    var c1o = sumOfCombination2(countValues(c1));
+    var c2o = sumOfCombination2(countValues(c2));
 
     return f(n, oo, c1o, c2o);
 }
 
-function buildContingencyTable(c1, c2) {
-    var table = buildMatrix(d3.max(c1) + 1, d3.max(c2) + 1);
-    d3.zip(c1, c2).forEach(function (v) { table[v[0]][v[1]]++; });
-
-    return table;
-}
-
-function buildMatrix(r, c) {
-    return d3.range(r).map(function () { return d3.range(c).map(function () { return 0; }); });
-}
-
 function countValues(c) {
     return d3.nest()
-        .key(function (e) { return e; }).sortKeys(d3.ascending)
-        .entries(c)
-        .map(function (e) { return e.values.length; });
+	.key(function (e) { return e; }).sortKeys(d3.ascending)
+	.rollup(function (v) { return v.length; })
+	.map(c, d3.map);
+}
+
+function countValues2d(c1, c2) {
+    return d3.nest()
+	.key(function (e) { return e[0]; }).sortKeys(d3.ascending)
+	.key(function (e) { return e[1]; }).sortKeys(d3.ascending)
+	.rollup(function (v) { return v.length; })
+	.map(d3.zip(c1, c2), d3.map);
 }
 
 function combination2(n) {
     return n * (n - 1) / 2;
+}
+
+function sumOfCombination2(m) {
+    return d3.sum(m.values(), combination2);
 }
